@@ -1,0 +1,100 @@
+#!/bin/bash
+# ─── DB Credentials ─────────────────────────────
+DB_USER="system"
+DB_PASS="manager"
+DB_CONN="secure-test.focusrtech.com:1552/TEST"
+
+# ─── Import Settings ─────────────────────────────
+APPLICATION_ID="100"
+OLD_WORKSPACE_ID="586345123"
+NEW_WORKSPACE_ID="786786"
+NEW_WORKSPACE_NAME="Checking"
+NEW_APP_ID="200"
+
+# ─── Environment ─────────────────────────────────
+export JAVA_HOME="/db/ebs/test/db/jdk-17/jdk-11.0.17"
+export PATH="/db/ebs/test/db/sqlcl/bin:$JAVA_HOME/bin:$PATH"
+
+# ─── Backup Directory ────────────────────────────
+BACKUP_DIR="/home/testdb/$(date +'%d%b%Y')"
+echo "Import Source Directory: $BACKUP_DIR"
+
+# ─── Verify Backup Directory Exists ──────────────
+if [ ! -d "$BACKUP_DIR" ]; then
+    echo "ERROR: Backup directory not found: $BACKUP_DIR"
+    exit 1
+fi
+
+# ─── Verify Export File Exists ───────────────────
+APP_FILE="$BACKUP_DIR/f${APPLICATION_ID}.sql"
+
+if [ ! -f "$APP_FILE" ]; then
+    echo "ERROR: Application export file not found: $APP_FILE"
+    exit 1
+fi
+echo "Found application export file: $APP_FILE"
+
+# ─── Verify Target Workspace Exists ──────────────
+echo "Verifying target workspace exists..."
+WS_CHECK=$(sql -S "$DB_USER/$DB_PASS@$DB_CONN" <<EOF
+SET HEADING OFF
+SET FEEDBACK OFF
+SET PAGESIZE 0
+SELECT COUNT(*) FROM APEX_220200.apex_workspaces WHERE workspace_id = $NEW_WORKSPACE_ID;
+EXIT;
+EOF
+)
+
+WS_CHECK=$(echo "$WS_CHECK" | tr -d '[:space:]')
+if [ "$WS_CHECK" = "0" ]; then
+    echo "ERROR: Workspace ID $NEW_WORKSPACE_ID ($NEW_WORKSPACE_NAME) does not exist."
+    echo "Please create the workspace first then re-run this script."
+    exit 1
+fi
+echo "Workspace $NEW_WORKSPACE_NAME ($NEW_WORKSPACE_ID) verified"
+
+# ─── Set APEX Context and Import Application ─────
+echo "Importing application $APPLICATION_ID as App ID $NEW_APP_ID into workspace: $NEW_WORKSPACE_NAME"
+sql -S "$DB_USER/$DB_PASS@$DB_CONN" <<EOF
+-- Set target workspace
+BEGIN
+    APEX_220200.WWV_FLOW_APPLICATION_INSTALL.SET_WORKSPACE_ID($NEW_WORKSPACE_ID);
+    APEX_220200.WWV_FLOW_APPLICATION_INSTALL.SET_APPLICATION_ID($NEW_APP_ID);
+    APEX_220200.WWV_FLOW_APPLICATION_INSTALL.SET_SCHEMA('SYSTEM');
+    APEX_220200.WWV_FLOW_APPLICATION_INSTALL.GENERATE_OFFSET;
+END;
+/
+
+-- Run the exported application SQL file
+@$APP_FILE
+
+EXIT;
+EOF
+
+echo "Application import script executed"
+
+# ─── Verify Import ───────────────────────────────
+echo "Verifying import..."
+sql -S "$DB_USER/$DB_PASS@$DB_CONN" <<EOF
+SET HEADING ON
+SET FEEDBACK OFF
+SET PAGESIZE 20
+SET LINESIZE 100
+COLUMN application_id   FORMAT 99999
+COLUMN application_name FORMAT A30
+COLUMN workspace        FORMAT A20
+SELECT application_id, application_name, workspace
+FROM APEX_220200.apex_applications
+WHERE workspace = UPPER('$NEW_WORKSPACE_NAME');
+EXIT;
+EOF
+
+echo "================================================"
+echo "Import Summary"
+echo "================================================"
+echo "Source App ID   : $APPLICATION_ID"
+echo "Target App ID   : $NEW_APP_ID"
+echo "Target Workspace: $NEW_WORKSPACE_NAME ($NEW_WORKSPACE_ID)"
+echo "Source File     : $APP_FILE"
+echo "Backup Dir      : $BACKUP_DIR"
+echo "================================================"

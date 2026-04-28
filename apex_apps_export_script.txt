@@ -1,0 +1,47 @@
+#!/bin/bash
+# ─── DB Credentials ─────────────────────────────
+DB_USER="system"
+DB_PASS="manager"
+DB_CONN="secure-test.focusrtech.com:1552/TEST"
+
+# ─── Export Settings ─────────────────────────────
+APPLICATION_ID="100"
+WORKSPACE_ID="586345123"
+
+# ─── Environment ─────────────────────────────────
+export JAVA_HOME="/db/ebs/test/db/jdk-17/jdk-11.0.17"
+export PATH="/db/ebs/test/db/sqlcl/bin:$JAVA_HOME/bin:$PATH"
+
+# ─── Backup Directory ────────────────────────────
+BACKUP_DIR="/home/testdb/$(date +'%d%b%Y')"
+mkdir -p "$BACKUP_DIR"
+echo "Backup Directory: $BACKUP_DIR"
+
+# ─── Export Workspace ────────────────────────────
+echo "Exporting workspace ID: $WORKSPACE_ID"
+sql "$DB_USER/$DB_PASS@$DB_CONN" <<EOF
+apex export -expWorkspace -workspaceid $WORKSPACE_ID -dir "$BACKUP_DIR"
+EXIT;
+EOF
+echo "Workspace export completed"
+
+# ─── Export Application as single .sql file ──────
+echo "Exporting application ID: $APPLICATION_ID"
+sql "$DB_USER/$DB_PASS@$DB_CONN" <<EOF
+apex export -applicationid $APPLICATION_ID -skipExportDate -expTranslations -expPubReports -expSupportingObjects N -dir "$BACKUP_DIR"
+EXIT;
+EOF
+
+# ─── Verify exported files ───────────────────────
+echo "Verifying exported files..."
+ls -lh "$BACKUP_DIR"/f${APPLICATION_ID}.sql "$BACKUP_DIR"/w${WORKSPACE_ID}.sql 2>/dev/null
+
+if [ -f "$BACKUP_DIR/f${APPLICATION_ID}.sql" ]; then
+    echo "SUCCESS: Application export file found: $BACKUP_DIR/f${APPLICATION_ID}.sql"
+else
+    echo "ERROR: Application export file NOT found. Check SQLcl output above."
+    exit 1
+fi
+
+echo "All exports completed successfully"
+echo "Backup stored in: $BACKUP_DIR"
