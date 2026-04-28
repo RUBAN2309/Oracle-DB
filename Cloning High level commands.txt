@@ -1,0 +1,14 @@
+----> Clonning High level commands <----
+
+DB clone important scripts
+==========================
+	+ 	perl adpreclone.pl dbTier          --> It will prepare source node with clone and required template directory
+	+   perl adclonectx.pl                 --> To create contextfile
+	+ 	perl adcfgclone.pl dbTechStack     --> To configure oracle Home
+	+	perl txkGenCDBTnsAdmin.pl          --> To create listner
+	+ 	rman auxiliary /                   --> Connect to rman to restore the backup
+		duplicate target database to 'DEVCDB' backup location '/u01/2025_NOV_13/2025_11_13';
+	
+APPS Clone important scripts
+============================
+	+	perl adcfgclone.pl appsTier dualfs --> It will configure both run & patch filesystems.

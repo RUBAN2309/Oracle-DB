@@ -1,0 +1,75 @@
+-----> RMAN High level Commands <-----
+
+To Check RMAN Configuration
+===========================
+	+	show all;
+
+
+NOTE:
+=====
+%d → Database name
+%s → Backup set number
+%p → Backup piece number
+%t → Timestamp
+%U → Unique filename
+	
+	
+To take backup in same piece size
+=================================
+	+	CONFIGURE CHANNEL DEVICE TYPE DISK MAXPIECESIZE 2G; 
+	+	backup database plus archivelog all;
+	(OR)
+	+ 	BACKUP DATABASE FORMAT '/backup/db_%U.bkp' MAXPIECESIZE 2G;
+
+	
+To take incremental backup
+==========================
+-> Act as full backup
+	+ 	BACKUP INCREMENTAL LEVEL 0 DATABASE FORMAT '/backup/level0_%U.bkp';  
+	
+-> Changes alone take backup, but complete very fast
+	+	BACKUP INCREMENTAL LEVEL 1 DATABASE FORMAT '/backup/level1_%U.bkp';  
+
+
+To take cumulative backup
+=========================
+-> Backup will take upto the changes of last run the level 0 backup
+	+	BACKUP INCREMENTAL LEVEL 1 CUMULATIVE DATABASE FORMAT '/backup/level1_cum_%U.bkp';
+
+
+To take backup with compressed size
+===================================
+	+ 	backup as compressed backupset database format '/backup/ebs/PROD/RMAN/$DATE/DB_FULL_%d_%s';
+	+	backup as compressed backupset archivelog all format '/backup/ebs/PROD/RMAN/$DATE/DB_AL_%d_%s';
+	+	backup current controlfile format '/backup/ebs/PROD/RMAN/$DATE/DB_CF_%d_%s';
+
+To check whether backup is valid or not
+=======================================
+	+	CROSSCHECK BACKUP;
+	+	CROSSCHECK COPY;
+	+	CROSSCHECK ARCHIVELOG ALL;
+	
+To check backup is corrupted or not
+===================================
+	+  	Validate database;
+	+ 	Validate archivelog all;
+
+Deleting commands
+================
+	+ 	DELETE EXPIRED BACKUP;
+	+ 	DELETE NOPROMPT EXPIRED ARCHIVELOG ALL;
+	+	DELETE EXPIRED COPY;
+	+ 	DELETE NOPROMPT ARCHIVELOG UNTIL TIME 'SYSDATE-7';
+
+To list out what backup having 
+==============================
+	+	LIST ARCHIVELOG ALL;
+	+	LIST COPY;
+	+	LIST BACKUP;
+
+
+
+
+	
+	
+	
