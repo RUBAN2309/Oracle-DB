@@ -1,0 +1,1529 @@
+How to Cancel the Request from the backend if frontend not helping to Cancel
+----------------------------------------------------------------------------
+
+Request ID for active user - 16222199
+
+Select * from fnd_concurrent_requests WHERE Request_id=12986885;
+
+UPDATE fnd_concurrent_requests
+SET phase_code = 'C', status_code = 'D'
+WHERE Request_id=16222199
+
+
+
+Find the Products in EBS:
+-------------------------
+
+select * from FND_PRODUCT_INSTALLATIONS where PATCH_LEVEL like '%ATG_PF%';
+
+
+In windows view the perticular contant in file:
+-----------------------------------------------
+
+findstr version rwrun.exe
+
+
+get WLS url:
+-------------
+
+$ echo "http://"$(cat $CONTEXT_FILE | grep s_webhost | cut -d '>' -f2 | cut -d '<' -f1)"."$(cat $CONTEXT_FILE | grep s_wls_admin_domain | cut -d '>' -f2 | cut -d '<' -f1)":"$(cat $CONTEXT_FILE | grep s_wls_adminport | cut -d '>' -f2 | cut -d '<' -f1)"/console"
+
+
+$ telnet focusrtech-com.mail.protection.outlook.com 25
+
+sudo netstat -tnlp | grep 6364
+netstat -a | grep 8031
+ss -tnlp | grep 8031
+netstat -tulpn | grep 6364
+
+
+In Windows:
+------------
+C:\Windows\System32>netstat -an | findstr :3310
+
+
+Find the plotform:
+-------------------
+
+SELECT banner FROM v$version WHERE banner LIKE 'Oracle%';
+
+SELECT platform_name FROM v$database;
+
+
+Find patch existing:
+--------------------
+
+In DB level:
+------------
+
+opatch lsinventory | grep 32969863
+
+In apps level:
+--------------
+
+SQL> select * from ad_bugs where bug_number='35381710';
+
+
+find the ORDS version:
+----------------------
+
+select ords.installed_version from dual;
+
+
+Change archive log location:
+-----------------------------
+
+SQL> archive log list
+SQL> show parameter log_archive_dest
+SQL> select destination,STATUS from v$archive_dest where statuS='VALID';
+
+SQL> alter system set log_archive_dest_1='LOCATION=/db/ebs/prod/oradata/PRODC/archive' scope=both;
+
+SQL> alter system switch logfile;
+
+
+Forntend username password change time:
+---------------------------------------
+
+SELECT TO_CHAR(password_date, 'DD-MON-YYYY HH24:MI:SS') AS password_date_with_time
+FROM fnd_user
+WHERE user_name = 'JMS';
+
+
+User creation:
+---------------
+
+Create user XX_MIGRAX identified by Migrax123;
+Grant select any table to XX_MIGRAX;
+GRANT CREATE TABLE TO XX_MIGRAX;
+GRANT CREATE SESSION TO XX_MIGRAX; 
+GRANT CREATE VIEW TO XX_MIGRAX;
+GRANT CREATE SEQUENCE TO XX_MIGRAX; 
+GRANT CREATE TRIGGER TO XX_MIGRAX;
+GRANT CREATE SYNONYM TO XX_MIGRAX;
+alter user XX_MIGRAX default tablespace XXTEST;
+alter user XX_MIGRAX temporary tablespace TEMP02;
+alter user XX_MIGRAX quota 100M on XXTEST;
+GRANT CREATE PROCEDURE TO XX_MIGRAX; 
+The command GRANT CREATE FUNCTIONS TO XX_MIGRAX; is incorrect because Oracle does not have a specific privilege called CREATE FUNCTIONS. 
+Instead, Oracle uses the CREATE PROCEDURE privilege to allow the creation of stored procedures, functions, and packages.
+GRANT CREATE FUNCTIONS TO XX_MIGRAX;
+GRANT CREATE PACKAGE TO XX_MIGRAX;
+
+
+
+Drop tablespace:
+-----------------
+Select * from dba_data_files where tablespace_name like '%DBLINK%';
+
+Drop tablespace DBLINK including contents and datafiles;
+
+
+TABLESPACE:
+=============
+
+Tablespace total, used and free:
+-----------------------------------
+
+
+SELECT df.tablespace_name Tablespace, df.bytes / (1024 * 1024) used_size ,SUM(fs.bytes) / (1024 * 1024) free_size,
+Nvl(Round(SUM(fs.bytes) * 100 / df.bytes),1) Free_pct, Round((df.bytes - SUM(fs.bytes)) * 100 / df.bytes) Used_pct FROM dba_free_space fs,
+(SELECT tablespace_name,SUM(bytes) bytes FROM dba_data_files GROUP BY tablespace_name) df WHERE fs.tablespace_name (+)  =
+df.tablespace_name GROUP BY df.tablespace_name,df.bytes UNION ALL SELECT df.tablespace_name tspace, fs.bytes / (1024 * 1024),
+SUM(df.bytes_free) / (1024 * 1024), Nvl(Round((SUM(fs.bytes) - df.bytes_used) * 100 / fs.bytes), 1),
+Round((SUM(fs.bytes) - df.bytes_free) * 100 / fs.bytes) FROM dba_temp_files fs, (SELECT tablespace_name,bytes_free,bytes_used 
+FROM v$temp_space_header GROUP BY tablespace_name,bytes_free,bytes_used) df WHERE fs.tablespace_name (+)  = df.tablespace_name GROUP BY
+df.tablespace_name,fs.bytes,df.bytes_free,df.bytes_used ORDER BY 4;
+
+(or)
+
+SELECT * 
+FROM 
+( SELECT 
+    c.tablespace_name,
+    ROUND(a.bytes/1048576,2)                    MB_Allocated,
+    ROUND(b.bytes/1048576,2)                    MB_Free,
+    ROUND((a.bytes-b.bytes)/1048576,2)          MB_Used,
+    ROUND(b.bytes/a.bytes * 100,2)              tot_Pct_Free,
+    ROUND((a.bytes-b.bytes)/a.bytes,2) * 100    tot_Pct_Used
+  FROM 
+    ( SELECT 
+        tablespace_name,
+        SUM(a.bytes) bytes
+      FROM 
+        sys.DBA_DATA_FILES a
+      GROUP BY 
+        tablespace_name
+    ) a,
+    ( SELECT 
+        a.tablespace_name,
+        NVL(SUM(b.bytes),0) bytes
+      FROM 
+        sys.DBA_DATA_FILES a,
+        sys.DBA_FREE_SPACE b
+      WHERE 
+        a.tablespace_name = b.tablespace_name (+)
+        AND a.file_id = b.file_id (+)
+      GROUP BY 
+        a.tablespace_name
+    ) b,
+    sys.DBA_TABLESPACES c
+  WHERE 
+    a.tablespace_name = b.tablespace_name(+)
+    AND a.tablespace_name = c.tablespace_name
+  ) 
+WHERE 
+  tot_Pct_Used >=0
+ORDER BY 
+  tot_pct_used desc;
+
+
+
+total tablespace and size (MB):
+-----------------------------------
+
+	+	SQL> SELECT tablespace_name, SUM(bytes)/1024/1024 AS "Size (MB)" FROM dba_data_files GROUP BY tablespace_name;
+
+	+	SQL> SELECT tablespace_name, SUM(bytes)/1024/1024 AS "Size (MB)" FROM dba_data_files where tablespace_name='APPS_TS_MEDIA' GROUP BY tablespace_name;
+
+
+Total Database size:
+---------------------
+
+SELECT ROUND(SUM(bytes) / 1024 / 1024 / 1024, 2) AS total_size_in_gb FROM dba_data_files;
+
+
+find datafile in a tablespace:
+-------------------------------
+
+	+	SQL> select tablespace_name,file_name from dba_data_files where TABLESPACE_NAME='APPS_TS_MEDIA';
+
+
+	+	SQL> SELECT tablespace_name, SUM(bytes)/1024/1024 AS "Size (MB)" 
+		FROM dba_data_files 
+		WHERE tablespace_name = 'APPS_TS_MEDIA' 
+		GROUP BY tablespace_name;
+
+
+Total DB size:
+---------------
+
+	+	SELECT ROUND(SUM(bytes)/1024/1024/1024,2) AS total_size_gb FROM (SELECT bytes FROM dba_data_files UNION ALL SELECT bytes FROM dba_temp_files);
+
+
+datafile usage, total and free space;
+------------------------------------------
+
+SELECT
+    df.file_name,
+    df.tablespace_name,
+    ROUND(df.bytes / (1024 * 1024), 2) AS total_size_mb,
+    ROUND((df.bytes - NVL(fs.bytes, 0)) / (1024 * 1024), 2) AS used_size_mb,
+    ROUND(NVL(fs.bytes, 0) / (1024 * 1024), 2) AS free_size_mb
+FROM
+    dba_data_files df
+LEFT JOIN
+    (SELECT
+         file_id,
+         SUM(bytes) AS bytes
+     FROM
+         dba_free_space
+     GROUP BY
+         file_id) fs
+ON
+    df.file_id = fs.file_id
+where 
+	df.tablespace_name='APPS_TS_TX_DATA'
+ORDER BY
+    df.tablespace_name, df.file_name;
+	
+
+Datafiles resize:
+-------------------
+
+	+	select tablespace_name,file_name from dba_data_files where TABLESPACE_NAME='APPS_TS_TX_DATA';
+
+	+	alter database datafile '/fmw/ebs/test/db/oradata/TEST/a_txn_data08.dbf' resize 4G;
+
+
+ADD Datafile:
+--------------
+
+	+	select tablespace_name,file_name from dba_data_files where TABLESPACE_NAME='APPS_TS_MEDIA';
+
+	+	alter tablespace APPS_TS_MEDIA add datafile '/fmw/ebs/UAT/db/oradata/a_media02.dbf' size 1G;
+	
+	
+	
+Delete archivelog all use sysdate-5:
+--------------------------------------
+
+	+	delete archivelog until time 'sysdate-5';
+
+
+TEMP tablespace size in GB:
+----------------------------
+
+	+	SQL> select TABLESPACE_NAME from dba_tablespaces where TABLESPACE_NAME like '%TEMP%';
+
+	+	SQL> select TABLESPACE_NAME,file_id,file_name,bytes/1024/1024/1024,AUTOEXTENSIBLE from dba_temp_files where tablespace_name like '%TEMP%';
+
+
+Create TEMP tablespace:
+-----------------------
+
+	+	SQL> create temporary tablespace temp3 tempfile '/fmw/ebs/test/db/oradata/temp03.dbf' size 1G;
+
+	+	alter tablespace temp add tempfile '/fmw/ebs/test/db/oradata/temp03.dbf' size 1G;
+
+
+
+
+Expdp and impdp:
+-----------------
+
+	+	CREATE OR REPLACE DIRECTORY XX_INVOICE_DIR AS '/fmw/ebs/test/XX_INVOICE_DIR';
+
+	+	GRANT READ, WRITE ON DIRECTORY XX_INVOICE_DIR TO apps;
+
+	+	expdp  TABLES=APPLSYS.FND_OAM_CONTEXT_FILES DIRECTORY=datapump_dir DUMPFILE=fnd_oam_context_files.dmp LOGFILE=fnd_oam_context_files.log
+
+	+	impdp table_exists_action=REPLACE DIRECTORY=datapump_dir DUMPFILE=fnd_oam_context_files.dmp LOGFILE=import_fnd_oam_context_files.log
+
+
+Find Table and owner:
+----------------------
+
+	+	SELECT owner, table_name
+		FROM all_tables
+		WHERE table_name = 'FND_OAM_CONTEXT_FILES';
+
+
+
+Redo log group, member and size:
+----------------------------------
+
+SELECT 
+    l.GROUP# AS "Group Number",
+    COUNT(lf.MEMBER) AS "Members",
+    SUM(l.BYTES) / 1024 / 1024 AS "Size (MB)"
+FROM 
+    V$LOG l
+JOIN 
+    V$LOGFILE lf ON l.GROUP# = lf.GROUP#
+GROUP BY 
+    l.GROUP#;
+	
+	
+Check db registry:
+------------------	
+
+	+	set lines 333 pages 111
+	+	col COMP_NAME form a55
+	+	select comp_name, version, status from dba_registry;
+
+
+
+verify the objects:
+--------------------
+
+	+	select owner, object_name, object_type, status from dba_objects where object_name in ('WPG_DOCLOAD','HELP','HELP_TOPIC_SEQ') order by object_name ASC;
+
+
+
+
+Take a backup of package, package_body and Index:
+-------------------------------------------------
+
+CREATE OR REPLACE DIRECTORY package AS '/db/ebs/UAT/db/dir';
+GRANT READ, WRITE ON DIRECTORY package TO system;
+expdp system/manager
+DIRECTORY=package
+DUMPFILE=package_body.dmp
+LOGFILE=package_body.log
+include=PACKAGE:"in ('WPG_DOCLOAD')"
+include=PACKAGE BODY:"in('WPG_DOCLOAD')"
+
+
+
+Get metedata for Index,package,package_body and view:
+======================================================
+
+	+	SQL> set line 500 pages 30000 long 30000
+	+	SQL> select dbms_metadata.get_ddl('INDEX','HELP_TOPIC_SEQ','SYSTEM') from dual;
+	+	SQL> select dbms_metadata.get_ddl('PACKAGE_BODY','CWM$CLASSIFY','OLAPSYS') from dual;
+	+	SQL> select dbms_metadata.get_ddl('PACKAGE','WPG_DOCLOAD','SYSTEM') from dual ;
+
+
+
+Check current working users:
+-----------------------------
+
+select sid, serial#, username, status, server, schemaname,osuser,machine, program,module,event from v$session where osuser not in ('testdb','testapp');
+ 
+ 
+select to_char(fnd.user_name) user_name, to_char(icx.responsibility_application_id) responsibility_application_id, to_char(icx.responsibility_id) responsibility_id,
+to_char(frt.responsibility_name) responsibility_name, to_char(icx.session_id) session_id, to_char(icx.function_type) function_type, to_char(icx.first_connect,'DD-MON-YYYY HH24:MI:SS') first_connect,
+to_char(icx.last_connect,'DD-MON-YYYY HH24:MI:SS') last_connect, DECODE ((icx.disabled_flag),'N', 'ACTIVE', 'Y', 'INACTIVE') STATUS
+from apps.fnd_user fnd, apps.icx_sessions icx, apps.fnd_responsibility_tl frt where icx.disabled_flag != 'Y'
+and icx.PSEUDO_FLAG = 'N' and fnd.user_id = icx.user_id and icx.responsibility_id = frt.responsibility_id
+and (icx.last_connect + decode(FND_PROFILE.VALUE('ICX_SESSION_TIMEOUT'), NULL,icx.limit_time, 0,
+icx.limit_time,FND_PROFILE.VALUE('ICX_SESSION_TIMEOUT')/60)/24) > sysdate and icx.counter < icx.limit_connects;
+ 
+ 
+select request_id, requestor  ,program , argument_text, phase_code,status_code,hold_flag,
+to_char(actual_start_date,'dd/mm/yyyy hh24:mi:ss') as "Start_time", to_char(actual_completion_date,'dd/mm/yyyy hh24:mi:ss') as "Completion_time",
+round((actual_completion_date-actual_start_date),6)*60*24 as "Time taken in min",completion_text 
+from fnd_conc_req_summary_v WHERE phase_code='R' order by actual_start_date desc;
+
+
+
+
+ 
+
+find the restore point:
+------------------------
+
+	+	SQL> select * from V$restore_point; 
+
+	+	SQL> create restore point pre_upgrade guarantee flashback database;
+
+	+	col name for a20
+	+	col GUARANTEE_FLASHBACK_DATABASE for a10
+	+	col TIME for a60
+	+	set lines 190
+	+	select NAME,GUARANTEE_FLASHBACK_DATABASE,TIME from V$restore_point;
+
+
+
+
+
+Make a drop query in bulk:
+-----------------------------
+
+	+	select 'drop view '||owner||'."'||object_name||'";' from dba_objects where owner='OLAPSYS' and object_type='VIEW' and status='INVALID';
+
+	+	select 'drop '||object_type||' '||owner||'."'||object_name||'";' from dba_objects where status='INVALID' and object_type='JAVA SOURCE';
+
+
+	+	select 'drop '||object_type||' '||owner||'.'||object_name||';' from dba_objects where status='INVALID'
+		and owner='XXTEST' and object_type not in ('PACKAGE BODY') order by object_type asc;
+
+
+
+
+
+Make a quarry to get the bulk ddl statment:
+---------------------------------------
+
+SELECT 'SELECT dbms_metadata.get_ddl(''' || object_type || ''',''' || object_name || ''',''' || owner || ''');'
+FROM dba_objects
+WHERE owner = 'XXTEST' 
+AND object_type = 'PROCEDURE' 
+AND status = 'INVALID';
+
+
+
+	+	select instance_name, name, open_mode, status from v$instance, v$database;
+
+	+	select comp_name, version, status from dba_registry;
+
+
+
+
+Find the LOCK:
+--------------- 
+
+select do.owner,do.object_name,do.object_type,dl.session_id,vs.sid,vs.serial#, vs.program,vs.machine,vs.osuser, vs.status, vs.process, vs.module, vs.SQL_HASH_VALUE,vs.sql_id,
+vs.client_identifier, vs.seconds_in_wait from dba_locks dl,dba_objects do,v$session vs
+where do.object_name ='-----' and do.object_type='TABLE' and dl.lock_id1 =do.object_id and vs.sid = dl.session_id;
+
+
+
+
+{
+
+Restore the database using FRA:
+-------------------------------
+
+connect / as sysdba
+startup mount;
+flashback database to restore point grp_1724060471355;
+alter database open resetlogs;
+exit;
+
+}
+
+
+adgrants version:
+------------------
+
+	+	$ cd $RUN_BASE/..
+	+	$ cd ..
+	+	$ find . -name adgrants.sql
+		
+	+	strings -a ./fs1/EBSapps/appl/admin/adgrants.sql | grep '$Header'
+	+	strings -a ./fs2/inst/apps/PROD_secure/admin/out/appsutil/appsutil/sql/adgrants.sql | grep '$Header'
+	+	strings -a ./fs2/EBSapps/appl/admin/adgrants.sql | grep '$Header'
+
+Execute adgrants:
+
+	+	sqlplus /nolog
+	+	@$ORACLE_HOME/appsutil/admin/adgrants.sql apps
+
+
+
+
+Get sid from os spid:
+----------------------
+col sid format 999999
+col username format a20 
+col osuser format a15 
+select b.spid,a.sid, a.serial#,a.username, a.osuser 
+from v$session a, v$process b 
+where a.paddr= b.addr 
+and b.spid='&spid'
+order by b.spid;
+
+
+Get sql_id of an SID:
+-----------------------
+select SQL_ID from v$session where sid=1025;
+
+Get sql_text of an SID:
+------------------------
+select SQL_TEXT from v$sql where SQL_ID='3xjw1ncw5vh27';
+
+
+DBA jobs:
+---------
+
+SELECT 
+    JOB_NAME, 
+    SESSION_ID, 
+    RUNNING_INSTANCE, 
+    ELAPSED_TIME, 
+    CPU_USED 
+FROM DBA_SCHEDULER_RUNNING_JOBS;
+
+SELECT 
+    j.JOB_NAME, 
+    s.SID, 
+    s.SERIAL#, 
+    s.STATUS, 
+    s.USERNAME, 
+    s.SQL_ID, 
+    s.OSUSER, 
+    s.MACHINE 
+FROM DBA_SCHEDULER_RUNNING_JOBS j
+JOIN V$SESSION s ON j.SESSION_ID = s.SID;
+
+
+
+
+
+find SID,SERIAL,SPID from Requst id
+------------------------------------
+ 
+SELECT A.REQUEST_ID, D.SID, D.SERIAL# , C.SPID
+FROM APPS.FND_CONCURRENT_REQUESTS A,
+APPS.FND_CONCURRENT_PROCESSES B,
+V$PROCESS C,
+V$SESSION D
+WHERE A.CONTROLLING_MANAGER = B.CONCURRENT_PROCESS_ID
+AND C.PID = B.ORACLE_PROCESS_ID
+AND B.SESSION_ID=D.AUDSID
+AND A.REQUEST_ID = &REQUEST_ID
+AND A.PHASE_CODE = 'R';
+
+
+
+/*Currently Running Concurrent Program*/
+
+
+SELECT DISTINCT c.USER_CONCURRENT_PROGRAM_NAME,round(((sysdate-a.actual_start_date)*24*60*60/60),2) AS Process_time,
+a.request_id,a.parent_request_id,a.request_date,a.actual_start_date,
+(a.actual_start_date-a.request_date)*24*60*60 AS lag_time,d.user_name, a.phase_code P,a.status_code S,a.argument_text,a.priority,
+a.actual_completion_date,(a.actual_completion_date-a.request_date)*24*60*60 AS end_to_end
+FROM   apps.fnd_concurrent_requests a,apps.fnd_concurrent_programs b,apps.FND_CONCURRENT_PROGRAMS_TL c,apps.fnd_user d
+WHERE  a.concurrent_program_id=b.concurrent_program_id AND b.concurrent_program_id=c.concurrent_program_id 
+AND a.requested_by=d.user_id --and c.USER_CONCURRENT_PROGRAM_NAME='Record Print Status'
+--and d.user_name='ARUN-A1855'
+--and phase_code='P'
+AND status_code='R' 
+order by Process_time desc;
+
+
+
+Concurrent run more than 5 mins:
+---------------------------------
+
+SELECT
+    r.request_id,
+    p.user_concurrent_program_name AS concurrent_program_name,
+    r.actual_start_date,
+    r.actual_completion_date,
+    ROUND(((r.actual_completion_date - r.actual_start_date) * 24 * 60), 2) AS duration_minutes,
+    r.phase_code,
+    r.status_code,
+    r.requested_by,
+    r.request_date
+FROM
+    fnd_concurrent_requests r
+JOIN
+    fnd_concurrent_programs_tl p
+    ON r.concurrent_program_id = p.concurrent_program_id
+WHERE
+    r.actual_start_date >= SYSDATE - 1
+    AND r.actual_completion_date IS NOT NULL
+    AND ((r.actual_completion_date - r.actual_start_date) * 24 * 60) > 1
+    AND p.language = 'US'
+ORDER BY
+    r.actual_start_date DESC;
+
+
+Concurrent running more then 15 mins:
+-------------------------------------
+
+SELECT 
+    request_id,
+    concurrent_program_id,
+    (SELECT user_concurrent_program_name 
+     FROM fnd_concurrent_programs_tl 
+     WHERE concurrent_program_id = fcr.concurrent_program_id 
+       AND language = 'US') AS program_name,
+    phase_code,
+    status_code,
+    actual_start_date,
+    SYSDATE - actual_start_date AS elapsed_days,
+    ROUND((SYSDATE - actual_start_date) * 24 * 60, 2) AS elapsed_minutes,
+    fcr.argument_text
+FROM 
+    fnd_concurrent_requests fcr
+WHERE 
+    phase_code = 'R'  -- 'R' = Running
+    AND actual_start_date IS NOT NULL
+    AND (SYSDATE - actual_start_date) * 24 * 60 > 15  -- More than 15 minutes
+ORDER BY 
+    actual_start_date ASC;
+
+
+
+
+Concurrent manager status target and actual check:
+---------------------------------------------
+
+select decode(CONCURRENT_QUEUE_NAME,'FNDICM','Internal Manager','FNDCRM',
+'Conflict Resolution Manager','AMSDMIN','Marketing Data Mining Manager',
+'C_AQCT_SVC','C AQCART Service','FFTM','FastFormula Transaction Manager',
+'FNDCPOPP','Output Post Processor','FNDSCH','Scheduler/Prereleaser Manager',
+'FNDSM_AQHERP','Service Manager: AQHERP','FTE_TXN_MANAGER','Transportation Manager',
+'IEU_SH_CS','Session History Cleanup','IEU_WL_CS','UWQ Worklist Items Release for Crashed session','INVMGR',
+'Inventory Manager','INVTMRPM','INV Remote Procedure Manager','OAMCOLMGR','OAM Metrics Collection Manager',
+'PASMGR','PA Streamline Manager','PODAMGR','PO Document Approval Manager','RCVOLTM','Receiving Transaction Manager',
+'STANDARD','Standard Manager','WFALSNRSVC','Workflow Agent Listener Service','WFMLRSVC','Workflow Mailer Service',
+'WFWSSVC','Workflow Document Web Services Service',
+'WMSTAMGR','WMS Task Archiving Manager','XDP_APPL_SVC','SFM Application Monitoring Service',
+'XDP_CTRL_SVC','SFM Controller Service','XDP_Q_EVENT_SVC','SFM Event Manager Queue Service',
+'XDP_Q_FA_SVC','SFM Fulfillment Actions Queue Service','XDP_Q_FE_READY_SVC',
+'SFM Fulfillment Element Ready Queue Service','XDP_Q_IN_MSG_SVC','SFM Inbound Messages Queue Service',
+'XDP_Q_ORDER_SVC','SFM Order Queue Service','XDP_Q_TIMER_SVC','SFM Timer Queue Service','XDP_Q_WI_SVC',
+'SFM Work Item Queue Service','XDP_SMIT_SVC','SFM SM Interface Test Service') as "Concurrent Manager's Name",
+max_processes as "TARGET Processes", running_processes as "ACTUAL Processes" from apps.fnd_concurrent_queues 
+where CONCURRENT_QUEUE_NAME in ('FNDICM','FNDCRM','AMSDMIN','C_AQCT_SVC','FFTM','FNDCPOPP','FNDSCH','FNDSM_AQHERP',
+'FTE_TXN_MANAGER','IEU_SH_CS','IEU_WL_CS','INVMGR','INVTMRPM','OAMCOLMGR','PASMGR','PODAMGR','RCVOLTM','STANDARD',
+'WFALSNRSVC','WFMLRSVC','WFWSSVC','WMSTAMGR','XDP_APPL_SVC','XDP_CTRL_SVC','XDP_Q_EVENT_SVC','XDP_Q_FA_SVC',
+'XDP_Q_FE_READY_SVC','XDP_Q_IN_MSG_SVC','XDP_Q_ORDER_SVC','XDP_Q_TIMER_SVC','XDP_Q_WI_SVC','XDP_SMIT_SVC');
+
+
+
+/*Run History of Concurrent Program*/
+---------------
+	
+select request_id, requestor  ,program , argument_text, phase_code,status_code,
+to_char(actual_start_date,'dd/mm/yyyy hh24:mi') as "Start_mtime", to_char(actual_completion_date,'dd/mm/yyyy hh24:mi') as "Completion_time",
+round((actual_completion_date-actual_start_date),6)*60*24 as "Time taken in min",completion_text 
+from fnd_conc_req_summary_v WHERE 1=1
+and program like 'Matrimony Bank Payment Advice Report%'
+--and request_id in ('1394283')
+--and argument_text like 'Verbose, NeoFinnone%'
+and phase_code='C' 
+--and status_code='C'
+--and requestor like 'ARUN-A1855'
+order by "Completion_time" desc;
+
+
+
+/*Get the program for (Number of days)*/
+-------------------
+
+
+SELECT distinct ft.user_concurrent_program_name "Conc Program Name",
+fr.REQUEST_ID "Request ID",
+to_char(fr.ACTUAL_START_DATE,'dd-MON-yy hh24:mi:ss') "Started at",
+to_char(fr.ACTUAL_COMPLETION_DATE,'dd-MON-yy hh24:mi:ss') "Completed at",
+decode(fr.PHASE_CODE,'C','Completed','I','Inactive','P','Pending','R','Running','NA') "Phasecode",
+decode(fr.STATUS_CODE, 'A','Waiting', 'B','Resuming', 'C','Normal', 'D','Cancelled', 'E','Error', 'F','Scheduled', 'G','Warning', 'H','On Hold', 'I','Normal', 'M',
+'No Manager', 'Q','Standby', 'R','Normal', 'S','Suspended', 'T','Terminating', 'U','Disabled', 'W','Paused', 'X','Terminated', 'Z','Waiting') "Status",fr.argument_text "Parameters",
+fu.user_name "Username",
+round(((nvl(fv.actual_completion_date,sysdate)-fv.actual_start_date)*24*60),2) "ElapsedTime(Mins)"
+FROM
+apps.fnd_concurrent_requests fr ,
+apps.fnd_concurrent_programs fp ,
+apps.fnd_concurrent_programs_tl ft,
+apps.fnd_user fu, apps.fnd_conc_req_summary_v fv
+WHERE
+fr.CONCURRENT_PROGRAM_ID = fp.CONCURRENT_PROGRAM_ID
+AND fr.actual_start_date >= (sysdate - &NUMBER_OF_DAYS)
+AND   fr.PROGRAM_APPLICATION_ID = fp.APPLICATION_ID
+AND ft.concurrent_program_id=fr.concurrent_program_id
+AND fr.REQUESTED_BY=fu.user_id
+AND fv.request_id=fr.request_id
+and ft.user_concurrent_program_name like '&USER_CONCURRENT_PROGRAM_NAME'
+order by to_char(fr.ACTUAL_COMPLETION_DATE,'dd-MON-yy hh24:mi:ss') desc;
+
+
+ 
+Invalid quary:
+---------------
+ 
+SELECT * FROM DBA_SCHEDULER_RUNNING_JOBS; --UTL_RECOMP_SALVE_#
+ 
+SELECT obj#,program_action, job_status, last_start_date FROM sys.SCHEDULER$_JOB 
+where program_action like '%utl_recomp%' order by last_start_date desc;
+
+SELECT COUNT(*) FROM sys.obj$ WHERE status IN (4, 5, 6);
+
+SELECT COUNT(*) FROM sys.UTL_RECOMP_COMPILED;
+
+
+
+
+Latest updated profile values with short_name:
+----------------------------------------------
+
+SELECT po.profile_option_name,
+       pov.level_id,
+       DECODE(pov.level_id,
+              10001, 'Site',
+              10002, 'Application',
+              10003, 'Responsibility',
+              10004, 'User',
+              'Unknown') AS level_name,
+       pov.profile_option_value,
+       to_char(pov.last_update_date,'dd/mon/yyyy hh24:mi:ss'),
+       u.user_name AS last_updated_by
+FROM   fnd_profile_option_values pov
+JOIN   fnd_profile_options po
+ON     pov.profile_option_id = po.profile_option_id
+LEFT JOIN fnd_user u
+ON     pov.last_updated_by = u.user_id
+ORDER BY pov.last_update_date DESC;
+
+
+Latest updated profile values with full_name:
+----------------------------------------------
+
+select * from
+(
+   select tl.user_profile_option_name "Profile Option",
+          decode(val.level_id,
+          10001, 'Site',
+          10002, 'Application',
+          10003, 'Responsibility',
+          10004, 'User',
+          10005, 'Server',
+          10006, 'Organization',
+          10007, 'Server+Resp',
+          'No idea, boss') "Option Level",
+          val.profile_option_value "Value",
+          val.last_update_date "Set on",
+          usr.user_name "Scoldee"
+     from fnd_profile_options opt,
+          fnd_profile_option_values val,
+          fnd_profile_options_tl tl,
+          fnd_user usr
+    where opt.profile_option_id = val.profile_option_id
+      and opt.profile_option_name = tl.profile_option_name
+      and usr.user_id = val.last_updated_by
+    order by val.last_update_date desc
+)
+where rownum <= &number_of_items
+;
+
+
+
+
+Find the perticular profile value:
+----------------------------------
+
+select p.profile_option_name SHORT_NAME, n.user_profile_option_name "PROFILE NAME",
+decode(
+v.level_id, 
+10001, 'Site', 
+10002, 'Application',
+10003, 'Responsibility', 
+10004, 'User', 
+10005, 'Server',
+10007, 'SERVRESP', 'UnDef') LEVEL_SET,
+decode(
+to_char(v.level_id), 
+'10001', '',
+'10002', app.application_short_name, 
+'10003', rsp.responsibility_key,
+'10005', svr.node_name, 
+'10006', org.name, 
+'10004', usr.user_name,
+'10007', 'Serv/resp', 'UnDef') CONTEXT, 
+v.profile_option_value VALUE, to_char(v.LAST_UPDATE_DATE,'dd-MON-yyyy hh24:mi:ss') LAST_UPDATE_DATE
+from fnd_profile_options p,
+fnd_profile_option_values v,
+fnd_profile_options_tl n,
+fnd_user usr,
+fnd_application app,
+fnd_responsibility rsp,
+fnd_nodes svr,
+hr_operating_units org
+where p.profile_option_id = v.profile_option_id (+)
+and p.profile_option_name = n.profile_option_name
+and n.user_profile_option_name in ('MO: Set Client_Info for Debugging')
+and usr.user_id (+) = v.level_value
+and rsp.application_id (+) = v.level_value_application_id
+and rsp.responsibility_id (+) = v.level_value
+and app.application_id (+) = v.level_value
+and svr.node_id (+) = v.level_value
+and org.organization_id (+) = v.level_value
+order by last_update_date desc, short_name, level_set;
+
+
+Update the perticular profile value:
+-------------------------------------
+
+set serveroutput on
+Declare
+Result Boolean;
+BEGIN   
+   Result:= fnd_profile.SAVE ('FND_MO_INIT_CI_DEBUG', null, 'SITE');
+   IF Result
+   THEN
+      DBMS_OUTPUT.put_line ('Profile Updated Successfully');
+   ELSE
+      DBMS_OUTPUT.put_line ('Profile Not Updated');
+   END IF;
+   COMMIT;
+END;
+/
+
+
+
+
+Use parent id get child program information:
+--------------------------------------------
+
+SELECT request_id,
+       parent_request_id,
+       program_application_id,
+       concurrent_program_id,
+       phase_code,
+       status_code,
+       requested_start_date,
+       actual_start_date,
+       actual_completion_date
+FROM   fnd_concurrent_requests
+WHERE  parent_request_id = 10115727
+ORDER BY request_id;
+
+
+
+
+Use PID to find the long running:
+----------------------------------
+
+	+	select * from v$session where process='3002266';
+
+
+SELECT s.sid, s.serial#, s.process AS server_pid, s.username, s.machine, 
+       s.program, q.sql_text 
+FROM v$session s
+JOIN v$sql q ON s.sql_id = q.sql_id
+WHERE s.sid = 150;
+
+
+
+
+
+
+Total user for System administrator responsibilites:
+-----------------------------------------------------
+
+SELECT (SELECT user_name FROM fnd_user
+        WHERE user_id = furg.user_id) user_name,
+    ( SELECT responsibility_key FROM
+            fnd_responsibility
+        WHERE responsibility_id = furg.responsibility_id) responsiblity_name
+FROM fnd_user_resp_groups_direct furg
+WHERE responsibility_id IN (
+        SELECT  responsibility_id FROM fnd_responsibility
+        WHERE menu_id = 67860);
+		
+		
+
+sysadmin responsibilites assign to user
+where User and responsibilites have enddate:
+--------------------------------------------------------
+
+SELECT
+    (
+        SELECT
+            user_name
+        FROM
+            fnd_user
+        WHERE
+            user_id = furg.user_id
+    ) user_name,
+    user_id,
+    (
+        SELECT
+            responsibility_key
+        FROM
+            fnd_responsibility
+        WHERE
+            responsibility_id = furg.responsibility_id
+    ) responsiblity_name
+FROM
+    fnd_user_resp_groups_direct furg
+WHERE
+        responsibility_id IN (
+            SELECT
+                responsibility_id
+            FROM
+                fnd_responsibility
+            WHERE
+                    menu_id = 67860
+                AND
+                    end_date IS NULL
+        )
+    AND
+        end_date IS NULL
+    AND
+        user_id <> 0;
+
+
+
+
+
+---Query to check Concurrent request is running status
+
+SELECT FCR.REQUEST_ID,
+       FCPT.USER_CONCURRENT_PROGRAM_NAME,
+       FCR.ACTUAL_START_DATE,
+       DECODE(FCR.PHASE_CODE, 
+              'C', 'Completed',
+              'I', 'Inactive',
+              'P', 'Pending',
+              'R', 'Running') AS PHASE,
+       DECODE(FCR.STATUS_CODE, 
+              'A', 'Waiting',
+              'B', 'Resuming',
+              'C', 'Normal',
+              'D', 'Cancelled',
+              'E', 'Error',
+              'F', 'Scheduled',
+              'G', 'Warning',
+              'H', 'On Hold',
+              'I', 'Normal',
+              'M', 'No Manager',
+              'Q', 'Standby',
+              'R', 'Normal',
+              'S', 'Suspended',
+              'T', 'Terminating',
+              'U', 'Disabled',
+              'W', 'Paused',
+              'X', 'Terminated',
+              'Z', 'Waiting') AS STATUS,
+       FU.USER_NAME
+FROM FND_CONCURRENT_REQUESTS FCR,
+	FND_CONCURRENT_PROGRAMS_TL FCPT,
+     FND_USER FU
+WHERE FCR.PHASE_CODE = 'R'
+  AND FCR.CONCURRENT_PROGRAM_ID = FCPT.CONCURRENT_PROGRAM_ID
+  AND FU.USER_ID = FCR.REQUESTED_BY
+ORDER BY FCR.ACTUAL_START_DATE DESC;
+
+
+-----Query to check concurrent request with completed and normal status
+
+SELECT FCR.REQUEST_ID,
+       FCPT.USER_CONCURRENT_PROGRAM_NAME,
+       FCR.ACTUAL_START_DATE,
+       DECODE(FCR.PHASE_CODE, 
+              'C', 'Completed',
+              'I', 'Inactive',
+              'P', 'Pending',
+              'R', 'Running') AS PHASE,
+       DECODE(FCR.STATUS_CODE, 
+              'A', 'Waiting',
+              'B', 'Resuming',
+              'C', 'Normal',
+              'D', 'Cancelled',
+              'E', 'Error',
+              'F', 'Scheduled',
+              'G', 'Warning',
+              'H', 'On Hold',
+              'I', 'Normal',
+              'M', 'No Manager',
+              'Q', 'Standby',
+              'R', 'Normal',
+              'S', 'Suspended',
+              'T', 'Terminating',
+              'U', 'Disabled',
+              'W', 'Paused',
+              'X', 'Terminated',
+              'Z', 'Waiting') AS STATUS,
+       FU.USER_NAME
+FROM FND_CONCURRENT_REQUESTS FCR,
+     FND_CONCURRENT_PROGRAMS_TL FCPT,
+     FND_USER FU
+WHERE FCR.PHASE_CODE = 'C'            -- Filter for "Completed" phase
+  AND FCR.STATUS_CODE = 'C'           -- Filter for "Normal" status
+  AND FCR.CONCURRENT_PROGRAM_ID = FCPT.CONCURRENT_PROGRAM_ID
+  AND FU.USER_ID = FCR.REQUESTED_BY
+ORDER BY FCR.ACTUAL_START_DATE DESC;
+
+
+
+Blocking session:
+------------------
+
+set feed off
+set pagesize 200
+set lines 299
+col event for a31
+
+SELECT
+s.inst_id,
+s.blocking_session,
+s.sid,
+s.serial#,
+s.seconds_in_wait,
+s.event
+FROM
+gv$session s
+WHERE
+blocking_session IS NOT NULL and s.seconds_in_wait > 10;
+
+
+
+CPU Usage Query:
+-----------------
+
+> SELECT
+    begin_time,
+    end_time,
+    ROUND(average, 2) AS cpu_usage_percent
+FROM
+    v$sysmetric
+WHERE
+    metric_name = 'CPU Usage Per Sec'
+    AND begin_time BETWEEN TO_DATE('12-JAN-2026', 'DD-mon-YYYY') 
+    AND TO_DATE('13-JAN-2026', 'DD-mon-YYYY')
+ORDER BY begin_time;
+
+
+SGA (System Global Area) Memory Usage:
+--------------------------------------
+
+> SELECT
+    name,
+    bytes / 1024 / 1024 AS memory_in_mb
+FROM
+    v$sga
+ORDER BY name;
+
+PGA (Program Global Area) Memory Usage:
+----------------------------------------
+
+> SELECT
+    name,
+    value / 1024 / 1024 AS memory_in_mb
+FROM
+    v$pgastat
+WHERE
+    name = 'total PGA allocated';
+	
+Storage Usage Query:
+--------------------
+
+> SELECT
+    file_name,
+    tablespace_name,
+    bytes / 1024 / 1024 AS file_size_in_mb,
+    maxbytes / 1024 / 1024 AS max_file_size_in_mb
+FROM
+    dba_data_files
+ORDER BY tablespace_name;
+
+ASM Disk Usage Query:
+---------------------
+
+> SELECT
+    name AS disk_group_name,
+    total_mb,
+    free_mb,
+    (total_mb - free_mb) AS used_mb,
+    ROUND((total_mb - free_mb) / total_mb * 100, 2) AS used_percent
+FROM
+    v$asm_diskgroup
+ORDER BY name;
+
+
+Putting Time Constraints for ASM or Storage Metrics:
+----------------------------------------------------
+
+> SELECT
+    snap_id,
+    instance_number,
+    begin_interval_time,
+    end_interval_time,
+    cpu_per_sec,
+    logical_reads_per_sec,
+    physical_reads_per_sec
+FROM
+    dba_hist_sysmetric_summary
+WHERE
+    metric_name = 'CPU Usage Per Sec'
+    AND begin_interval_time BETWEEN TO_DATE('01-jan-2024', 'DD-mon-YYYY') 
+    AND TO_DATE('30-sep-2024', 'DD-mon-YYYY')
+ORDER BY begin_interval_time;
+
+
+
+SQL Query to fetch all Concurrent request: {Running, Completed, Pending, specific request id & multiple request id} status check with time
+=============================================================================================================================================
+
+SELECT FCR.REQUEST_ID,
+       FCPT.USER_CONCURRENT_PROGRAM_NAME,
+       TO_CHAR(FCR.ACTUAL_START_DATE, 'DD-MM-YYYY HH24:MI:SS') AS START_TIMESTAMP,  -- Format start time with timestamp
+       TO_CHAR(FCR.ACTUAL_COMPLETION_DATE, 'DD-MM-YYYY HH24:MI:SS') AS END_TIMESTAMP,  -- Format end time with timestamp
+       DECODE(FCR.PHASE_CODE, 
+              'C', 'Completed',
+              'I', 'Inactive',
+              'P', 'Pending',
+              'R', 'Running') AS PHASE,
+       DECODE(FCR.STATUS_CODE, 
+              'A', 'Waiting',
+              'B', 'Resuming',
+              'C', 'Normal',
+              'D', 'Cancelled',
+              'E', 'Error',
+              'F', 'Scheduled',
+              'G', 'Warning',
+              'H', 'On Hold',
+              'I', 'Normal',
+              'M', 'No Manager',
+              'Q', 'Standby',
+              'R', 'Normal',
+              'S', 'Suspended',
+              'T', 'Terminating',
+              'U', 'Disabled',
+              'W', 'Paused',
+              'X', 'Terminated',
+              'Z', 'Waiting') AS STATUS,
+       FU.USER_NAME
+FROM FND_CONCURRENT_REQUESTS FCR,
+     FND_CONCURRENT_PROGRAMS_TL FCPT,
+     FND_USER FU
+WHERE FCR.PHASE_CODE = 'R'  -- Completed phase
+  --AND FCR.STATUS_CODE = 'C'  -- Normal status
+  --AND FCR.REQUEST_ID IN ('64962700')  -- Replace with the specific REQUEST_ID
+  AND FCR.CONCURRENT_PROGRAM_ID = FCPT.CONCURRENT_PROGRAM_ID
+  AND FU.USER_ID = FCR.REQUESTED_BY
+ORDER BY FCR.ACTUAL_START_DATE DESC;
+
+
+MARTIN - Query to get current cpu utlization full details with ospid
+======================================================================
+
+SELECT
+   se.SID,
+   ss.serial#,
+   ss.username,
+   ss.machine,
+   ss.sql_id,
+   ss.status,
+   TO_CHAR(s.last_active_time, 'DD-MON-YY HH:MI:SS') AS last_active_time,
+   s.last_load_time,
+   se.VALUE / 100 AS cpu_secs,              -- CPU time in seconds
+   ROUND(se.VALUE / 6000, 2) AS cpu_mins,   -- CPU time in minutes (2 decimals)
+   SUBSTR(s.sql_text, 1, 50) AS text,
+   ss.client_identifier,
+   p.spid AS os_pid,     -- OS Process ID
+   p.pid AS oracle_pid   -- Oracle Internal Process ID (OPID)
+FROM
+   v$session ss
+JOIN
+   v$sesstat se ON se.SID = ss.SID
+JOIN
+   v$statname sn ON se.STATISTIC# = sn.STATISTIC#
+JOIN
+   v$sql s ON ss.sql_id = s.sql_id
+JOIN
+   v$process p ON ss.paddr = p.addr
+WHERE
+   sn.NAME = 'CPU used by this session'
+ORDER BY
+   se.VALUE DESC;
+
+
+
+
+SQL Query to fetch all scheduled concurrent programs 
+=======================================================
+
+select r.request_id,
+p.user_concurrent_program_name ||
+case
+when p.user_concurrent_program_name = 'Report Set' then
+(select ' - ' || s.user_request_set_name
+from apps.fnd_request_sets_tl s
+where s.application_id = r.argument1
+and s.request_set_id = r.argument2
+and language = 'US'
+)
+when p.user_concurrent_program_name = 'Check Periodic Alert' then
+(select ' - ' || a.alert_name
+from apps.alr_alerts a
+where a.application_id = r.argument1
+and a.alert_id = r.argument2
+and language = 'US'
+)
+end concurrent_program_name,
+decode(c.class_type,
+'P', 'Periodic',
+'S', 'On Specific Days',
+'X', 'Advanced',
+c.class_type
+) schedule_type,
+case
+when c.class_type = 'P' then
+'Repeat every ' ||
+substr(c.class_info, 1, instr(c.class_info, ':') - 1) ||
+decode(substr(c.class_info, instr(c.class_info, ':', 1, 1) + 1, 1),
+'N', ' minutes',
+'M', ' months',
+'H', ' hours',
+'D', ' days') ||
+decode(substr(c.class_info, instr(c.class_info, ':', 1, 2) + 1, 1),
+'S', ' from the start of the prior run',
+'C', ' from the completion of the prior run')
+when c.class_type = 'S' then
+nvl2(dates.dates, 'Dates: ' || dates.dates || '. ', null) ||
+decode(substr(c.class_info, 32, 1), '1', 'Last day of month ') ||
+decode(sign(to_number(substr(c.class_info, 33))),
+'1', 'Days of week: ' ||
+decode(substr(c.class_info, 33, 1), '1', 'Su ') ||
+decode(substr(c.class_info, 34, 1), '1', 'Mo ') ||
+decode(substr(c.class_info, 35, 1), '1', 'Tu ') ||
+decode(substr(c.class_info, 36, 1), '1', 'We ') ||
+decode(substr(c.class_info, 37, 1), '1', 'Th ') ||
+decode(substr(c.class_info, 38, 1), '1', 'Fr ') ||
+decode(substr(c.class_info, 39, 1), '1', 'Sa '))
+end schedule,
+r.requested_start_date next_run,
+case
+when p.user_concurrent_program_name != 'Report Set' and
+p.user_concurrent_program_name != 'Check Periodic Alert' then
+r.argument_text
+end argument_text,
+r.hold_flag on_hold,
+r.status_code,
+c.date1 start_date,
+c.date2 end_date,
+c.class_info, user_name
+from apps.fnd_concurrent_requests r,
+applsys.fnd_conc_release_classes c,
+apps.fnd_concurrent_programs_tl p,
+apps.fnd_user usr,
+(SELECT release_class_id,
+substr(max(SYS_CONNECT_BY_PATH(s, ' ')), 2) dates ,a
+FROM (select release_class_id,
+rank() over(partition by release_class_id order by s) a,
+s
+from (select c.class_info,
+l,
+c.release_class_id,
+decode(substr(c.class_info, l, 1), '1', to_char(l)) s
+from (select level l
+from dual
+connect by level <= 31),
+apps.fnd_conc_release_classes c
+where c.class_type = 'S')
+where s is not null)
+CONNECT BY PRIOR
+(a || release_class_id) = (a - 1) || release_class_id
+group by release_class_id,a) dates
+where 1=1
+and r.phase_code = 'P'
+and r.status_code='Q'
+and c.application_id = r.release_class_app_id
+and c.release_class_id = r.release_class_id
+and nvl(c.date2, sysdate + 1) > sysdate
+and c.class_type is not null
+and p.concurrent_program_id = r.concurrent_program_id
+and p.application_id = r.program_application_id
+and p.language = 'US'
+and dates.release_class_id(+) = r.release_class_id
+and usr.user_id = requested_by
+order by requested_by,on_hold, next_run;
+
+
+
+
+Concurrent Manager Administer Screen Status
+===============================================
+
+SELECT 
+    DECODE(q.concurrent_queue_name,
+        'FNDICM', 'Internal Manager',
+        'FNDCPOPP', 'Output Post Processor',
+        'FNDCRM', 'Conflict Resolution Manager',
+        'AMSDMIN', 'Marketing Data Mining Manager',
+        'C_AQCT_SVC', 'C AQCART Service',
+        'FFTM', 'FastFormula Transaction Manager',
+        'FNDSCH', 'Scheduler/Prereleaser Manager',
+        'FNDSM_AQHERP', 'Service Manager: AQHERP',
+        'FTE_TXN_MANAGER', 'Transportation Manager',
+        'IEU_SH_CS', 'Session History Cleanup',
+        'IEU_WL_CS', 'UWQ Worklist Items Release for Crashed session',
+        'INVMGR', 'Inventory Manager',
+        'INVTMRPM', 'INV Remote Procedure Manager',
+        'OAMCOLMGR', 'OAM Metrics Collection Manager',
+        'PASMGR', 'PA Streamline Manager',
+        'PODAMGR', 'PO Document Approval Manager',
+        'RCVOLTM', 'Receiving Transaction Manager',
+        'STANDARD', 'Standard Manager',
+        'WFALSNRSVC', 'Workflow Agent Listener Service',
+        'WFMLRSVC', 'Workflow Mailer Service',
+        'WFWSSVC', 'Workflow Document Web Services Service',
+        'WMSTAMGR', 'WMS Task Archiving Manager',
+        'XDP_APPL_SVC', 'SFM Application Monitoring Service',
+        'XDP_CTRL_SVC', 'SFM Controller Service',
+        'XDP_Q_EVENT_SVC', 'SFM Event Manager Queue Service',
+        'XDP_Q_FA_SVC', 'SFM Fulfillment Actions Queue Service',
+        'XDP_Q_FE_READY_SVC', 'SFM Fulfillment Element Ready Queue Service',
+        'XDP_Q_IN_MSG_SVC', 'SFM Inbound Messages Queue Service',
+        'XDP_Q_ORDER_SVC', 'SFM Order Queue Service',
+        'XDP_Q_TIMER_SVC', 'SFM Timer Queue Service',
+        'XDP_Q_WI_SVC', 'SFM Work Item Queue Service',
+        'XDP_SMIT_SVC', 'SFM SM Interface Test Service'
+    ) AS "CONCURRENT MANAGER'S",
+     
+    running_processes AS "ACTUAL",
+    max_processes AS "TARGET",
+    
+    -- Calculate the running requests count
+    (SELECT COUNT(*) 
+     FROM apps.fnd_concurrent_requests r
+     JOIN apps.fnd_concurrent_processes p 
+       ON r.controlling_manager = p.concurrent_process_id
+     WHERE p.concurrent_queue_id = q.concurrent_queue_id
+       AND r.phase_code = 'R'
+       AND r.status_code != 'W') AS "RUNNING COUNT",
+       
+    -- Calculate the pending requests count
+    (SELECT COUNT(*) 
+     FROM apps.fnd_concurrent_requests r
+     JOIN apps.fnd_concurrent_processes p 
+       ON r.controlling_manager = p.concurrent_process_id
+     WHERE p.concurrent_queue_id = q.concurrent_queue_id
+       AND r.phase_code = 'P') AS "PENDING COUNT"
+
+FROM 
+    apps.fnd_concurrent_queues q
+
+WHERE 
+    CONCURRENT_QUEUE_NAME IN (
+        'FNDICM', 'FNDCRM', 'AMSDMIN', 'C_AQCT_SVC', 'FFTM', 'FNDCPOPP', 
+        'FNDSCH', 'FNDSM_AQHERP', 'FTE_TXN_MANAGER', 'IEU_SH_CS', 'IEU_WL_CS', 
+        'INVMGR', 'INVTMRPM', 'OAMCOLMGR', 'PASMGR', 'PODAMGR', 'RCVOLTM', 
+        'STANDARD', 'WFALSNRSVC', 'WFMLRSVC', 'WFWSSVC', 'WMSTAMGR', 
+        'XDP_APPL_SVC', 'XDP_CTRL_SVC', 'XDP_Q_EVENT_SVC', 'XDP_Q_FA_SVC', 
+        'XDP_Q_FE_READY_SVC', 'XDP_Q_IN_MSG_SVC', 'XDP_Q_ORDER_SVC', 
+        'XDP_Q_TIMER_SVC', 'XDP_Q_WI_SVC', 'XDP_SMIT_SVC'
+    );
+
+
+
+
+
+
+Active users with responsibilities:
+-------------------------------------
+
+
+SELECT b.user_id,
+        b.user_name,
+         -- b.start_date creation_date,
+         c.responsibility_name,
+         -- a.start_date responsibility_start_date,
+         ftl.application_name,
+         b.email_address
+    FROM fnd_user_resp_groups_direct a,
+         fnd_user b,
+         fnd_responsibility_vl c,        
+         fnd_application fa,
+         fnd_application_tl ftl
+   WHERE a.user_id = b.user_id
+     AND a.responsibility_id = c.responsibility_id
+     AND fa.application_id = a.responsibility_application_id
+     AND fa.application_id = ftl.application_id
+     AND ftl.language   = USERENV('LANG')
+     AND SYSDATE BETWEEN a.start_date AND NVL(a.end_date,SYSDATE + 1)
+     AND SYSDATE BETWEEN b.start_date AND NVL(b.end_date,SYSDATE + 1)
+     AND SYSDATE BETWEEN c.start_date AND NVL(c.end_date,SYSDATE + 1)
+     --AND b.user_id > 1100 -- Excludes standard users like SYSADMIN,GUEST etc
+UNION ALL
+SELECT b.user_id,
+        b.user_name,
+         -- b.start_date creation_date,
+         c.responsibility_name,
+         -- a.start_date responsibility_start_date,
+         ftl.application_name,
+         b.email_address
+    FROM fnd_user_resp_groups_indirect a,
+         fnd_user b,
+         fnd_responsibility_vl c,        
+         fnd_application fa,
+         fnd_application_tl ftl
+   WHERE a.user_id = b.user_id
+     AND a.responsibility_id = c.responsibility_id
+     AND fa.application_id = a.responsibility_application_id
+     AND fa.application_id = ftl.application_id
+     AND ftl.language   = USERENV('LANG')
+     AND SYSDATE BETWEEN a.start_date AND NVL(a.end_date,SYSDATE + 1)
+     AND SYSDATE BETWEEN b.start_date AND NVL(b.end_date,SYSDATE + 1)
+     AND SYSDATE BETWEEN c.start_date AND NVL(c.end_date,SYSDATE + 1)
+    -- AND b.user_id > 1100 -- Excludes standard users like SYSADMIN,GUEST etc
+    ORDER BY user_name;
+	
+	
+/*Run History of Concurrent Program*/ take req id for CONCURRENT program:
+---------------------------------------------------------------------------
+	
+select request_id, requestor  ,program , argument_text, phase_code,status_code,
+to_char(actual_start_date,'dd/mm/yyyy hh24:mi') as "Start_mtime", to_char(actual_completion_date,'dd/mm/yyyy hh24:mi') as "Completion_time",
+round((actual_completion_date-actual_start_date),6)*60*24 as "Time taken in min",completion_text 
+from fnd_conc_req_summary_v WHERE 1=1
+and program like '%Gather%'
+--and request_id in ('50306930')
+--and argument_text like 'Verbose, NeoFinnone%'
+and phase_code='C' 
+--and status_code='C'
+--and requestor like 'ARUN-A1855'
+order by "Completion_time" desc;
+
+
+
+/*Run History of Concurrent Program*/ yesterday programs only:
+--------------------------------------------------------------
+
+
+select request_id, requestor  ,program , 
+--argument_text, 
+phase_code,status_code,
+to_char(actual_start_date,'dd/mm/yyyy hh24:mi') as "Start_mtime", to_char(actual_completion_date,'dd/mm/yyyy hh24:mi') as "Completion_time",
+round((actual_completion_date-actual_start_date),6)*60*24 as "Time taken in min",completion_text 
+from fnd_conc_req_summary_v WHERE 1=1
+and actual_completion_date >= trunc(sysdate - 1)
+and actual_completion_date < trunc(sysdate)
+--and program like '%Gather%'
+--and request_id in ('50306930')
+--and argument_text like 'Verbose, NeoFinnone%'
+and phase_code='C' 
+--and status_code='C'
+--and requestor like 'ARUN-A1855'
+order by "Completion_time" desc;
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+
+CPU utilize for REST API's:
+---------------------------
+
+
+SELECT 
+    s.sid,
+    s.serial#,
+    p.username,
+    ROUND(p.pga_used_mem / (1024*1024), 2) AS pga_used_mem_mb,
+    ROUND(p.pga_alloc_mem / (1024*1024), 2) AS pga_alloc_mem_mb,
+    ROUND(p.pga_freeable_mem / (1024*1024), 2) AS pga_freeable_mem_mb,
+    ROUND(p.pga_max_mem / (1024*1024), 2) AS pga_max_mem_mb,
+    s.program,
+    s.module,
+    s.action,
+    s.status,
+    s.schemaname,
+    s.state,
+    s.sql_id,
+    s.plsql_entry_object_id,
+    s.plsql_entry_subprogram_id,
+    s.logon_time,
+    FLOOR((SYSDATE - s.logon_time) * 24) AS hours_active,
+    ROUND(se.value / 100, 2) AS cpu_usage_sec   -- CPU utilization
+FROM 
+    v$process p
+    JOIN v$session s ON p.addr = s.paddr
+    JOIN v$sesstat se ON s.sid = se.sid
+    JOIN v$statname sn ON se.statistic# = sn.statistic#
+WHERE 
+    sn.name = 'CPU used by this session'
+    AND s.program = 'Oracle REST Data Services' 
+    --AND (s.module LIKE 'ORDS%' OR s.action LIKE '%REST%')
+    AND s.status = 'ACTIVE'
+    --AND s.state != 'WAITING'
+ORDER BY 
+    cpu_usage_sec DESC, 
+    p.pga_used_mem DESC
+FETCH FIRST 50 ROWS ONLY 
+;
+
+
+
+
+User and all responsibilites:
+------------------------------
+
+SELECT
+b.user_name,
+c.responsibility_name,
+a.start_date,
+a.end_date AS res_end_date,
+b.end_date AS user_end_date
+FROM
+fnd_user_resp_groups_direct a,
+fnd_user b,
+fnd_responsibility_tl c
+WHERE
+a.user_id = b.user_id
+and b.user_name='DINESH'
+AND a.responsibility_id = c.responsibility_id
+--AND c.responsibility_name = 'System Administrator'
+--AND (a.end_date IS NULL AND b.end_date IS NULL);
+
+
+
+
+
+DB LINK Creation:
+-----------------
+
+select * from dba_db_links;
+
+SELECT DBMS_METADATA.GET_DDL('DB_LINK', 'CRP_TO_NAMMA', 'APPS') AS "DB Link DDL" FROM DUAL;
+
+CREATE DATABASE LINK "CRP_TO_NAMMA" CONNECT TO "*****" IDENTIFIED BY VALUES ':1' USING '(DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=192.168.10.105)(PORT=1521))(CONNECT_DATA=(SID=NAMMA)))';
+
+
